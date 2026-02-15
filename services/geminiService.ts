@@ -1,8 +1,8 @@
 import { WordDetails, AiHelperResult, AiHelperMode, ChapterContent } from "../types";
 
 const API_KEY = import.meta.env.VITE_API_KEY;
-const API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
-const MODEL_ID = "gemini-1.5-flash";
+const API_BASE = "https://generativelanguage.googleapis.com/v1/models";
+const MODEL_ID = "gemini-1.5-flash-latest";
 
 async function withRetry<T>(fn: () => Promise<T>, retries = 2, initialDelay = 500): Promise<T> {
   let lastError: any;
