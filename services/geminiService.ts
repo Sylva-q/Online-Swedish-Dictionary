@@ -1,10 +1,7 @@
-import { GoogleGenAI } from "@google/genai";
 import { WordDetails, AiHelperResult, AiHelperMode, ChapterContent } from "../types";
 
-// Initialize the client once. Use the standard v1 endpoint automatically.
-const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
-
-// Use the standard model ID - avoiding retired or "beta" names
+const API_KEY = import.meta.env.VITE_API_KEY;
+const API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 const MODEL_ID = "gemini-1.5-flash";
 
 async function withRetry<T>(fn: () => Promise<T>, retries = 2, initialDelay = 500): Promise<T> {
@@ -24,20 +21,39 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 2, initialDelay = 50
   throw lastError;
 }
 
+async function callGemini(prompt: string, temperature = 0.7): Promise<string> {
+  const response = await fetch(`${API_BASE}/${MODEL_ID}:generateContent?key=${API_KEY}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      contents: [{
+        parts: [{
+          text: prompt
+        }]
+      }],
+      generationConfig: {
+        temperature: temperature,
+        responseMimeType: "application/json",
+      }
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`API Error ${response.status}: ${error}`);
+  }
+
+  const data = await response.json();
+  return data.candidates[0].content.parts[0].text;
+}
+
 export const lookupSwedishWord = async (word: string, targetLanguage: string): Promise<WordDetails[]> => {
   return withRetry(async () => {
-    // Calling .models.generateContent is the modern 2026 standard
-    const response = await ai.models.generateContent({
-      model: MODEL_ID,
-      contents: `Generate a Swedish-English dictionary entry for "${word}". Translate secondary definitions and examples to ${targetLanguage}. Return as a JSON array.`,
-      config: {
-        responseMimeType: "application/json",
-        temperature: 0.1,
-      },
-    });
-
-    if (!response.text) throw new Error("Empty response from AI");
-    return JSON.parse(response.text);
+    const prompt = `Generate a Swedish-English dictionary entry for "${word}". Translate secondary definitions and examples to ${targetLanguage}. Return as a JSON array.`;
+    const text = await callGemini(prompt, 0.1);
+    return JSON.parse(text);
   });
 };
 
@@ -46,24 +62,17 @@ export const getAiTextHelp = async (inputText: string, mode: AiHelperMode, targe
     let prompt = mode === 'translate' ? `Translate to English and ${targetLanguage}:` :
                  mode === 'correct' ? `Correct Swedish grammar and explain in English and ${targetLanguage}:` :
                  `Write a Swedish paragraph about:`;
-
-    const response = await ai.models.generateContent({
-      model: MODEL_ID,
-      contents: `${prompt} "${inputText}". Return JSON: { "output": "string", "explanation": "string" }`,
-      config: { responseMimeType: "application/json" }
-    });
-
-    return JSON.parse(response.text);
+    
+    prompt += ` "${inputText}". Return JSON: { "output": "string", "explanation": "string" }`;
+    const text = await callGemini(prompt);
+    return JSON.parse(text);
   });
 };
 
 export const getRivstartChapter = async (chapterNumber: number, title: string, targetLanguage: string): Promise<ChapterContent> => {
   return withRetry(async () => {
-    const response = await ai.models.generateContent({
-      model: MODEL_ID,
-      contents: `Summarize Rivstart Chapter ${chapterNumber}: ${title}. Provide vocabulary with English and ${targetLanguage} translations in JSON.`,
-      config: { responseMimeType: "application/json" }
-    });
-    return JSON.parse(response.text);
+    const prompt = `Summarize Rivstart Chapter ${chapterNumber}: ${title}. Provide vocabulary with English and ${targetLanguage} translations in JSON.`;
+    const text = await callGemini(prompt);
+    return JSON.parse(text);
   });
 };
