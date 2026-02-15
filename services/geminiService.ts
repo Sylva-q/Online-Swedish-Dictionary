@@ -75,7 +75,7 @@ export const lookupSwedishWord = async (word: string, targetLanguage: string): P
   return withRetry(async () => {
     const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview", 
+      model: "gemini-1.5-flash", 
       contents: `Entry for: "${word}". Translate secondary to ${targetLanguage}.`,
       config: {
         systemInstruction: "You are a Swedish-English dictionary. Provide concise entries. NO conversational text. Strictly follow JSON schema. IMPORTANT: JSON values must contain ONLY the word/form, NOT the key name or labels like 'Singular: word'. IPA is phonetic only. Inflections are single words.",
@@ -101,7 +101,7 @@ export const getAiTextHelp = async (inputText: string, mode: AiHelperMode, targe
     else if (mode === 'read') modeInstruction = `Break text into sentences for TTS using ||| separator.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-1.5-flash",
       contents: inputText,
       config: {
         systemInstruction: `You are a Swedish tutor. ${modeInstruction} Strictly JSON output with 'output' and 'explanation' keys.`,
@@ -125,7 +125,7 @@ export const getRivstartChapter = async (chapterNumber: number, title: string, t
   return withRetry(async () => {
     const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-1.5-flash",
       contents: `Rivstart Chapter ${chapterNumber}: ${title}. Secondary lang: ${targetLanguage}.`,
       config: {
         systemInstruction: "You are a Swedish teacher. Summarize chapters from Rivstart A1+A2. Provide vocabulary with English and secondary translations.",
