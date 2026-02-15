@@ -35,25 +35,28 @@ async function callGemini(prompt: string, temperature = 0.7): Promise<string> {
       }],
       generationConfig: {
         temperature: temperature,
-        responseMimeType: "application/json",
       }
     })
   });
 
   if (!response.ok) {
     const error = await response.text();
+    console.error("API Error:", error);
     throw new Error(`API Error ${response.status}: ${error}`);
   }
 
   const data = await response.json();
-  return data.candidates[0].content.parts[0].text;
+  const text = data.candidates[0].content.parts[0].text;
+  return text;
 }
 
 export const lookupSwedishWord = async (word: string, targetLanguage: string): Promise<WordDetails[]> => {
   return withRetry(async () => {
-    const prompt = `Generate a Swedish-English dictionary entry for "${word}". Translate secondary definitions and examples to ${targetLanguage}. Return as a JSON array.`;
+    const prompt = `Generate a Swedish-English dictionary entry for "${word}". Translate secondary definitions and examples to ${targetLanguage}. Return ONLY a valid JSON array with no markdown formatting or code blocks.`;
     const text = await callGemini(prompt, 0.1);
-    return JSON.parse(text);
+    // Remove markdown code blocks if present
+    const cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    return JSON.parse(cleanText);
   });
 };
 
@@ -63,16 +66,18 @@ export const getAiTextHelp = async (inputText: string, mode: AiHelperMode, targe
                  mode === 'correct' ? `Correct Swedish grammar and explain in English and ${targetLanguage}:` :
                  `Write a Swedish paragraph about:`;
     
-    prompt += ` "${inputText}". Return JSON: { "output": "string", "explanation": "string" }`;
+    prompt += ` "${inputText}". Return ONLY a valid JSON object: { "output": "string", "explanation": "string" } with no markdown formatting.`;
     const text = await callGemini(prompt);
-    return JSON.parse(text);
+    const cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    return JSON.parse(cleanText);
   });
 };
 
 export const getRivstartChapter = async (chapterNumber: number, title: string, targetLanguage: string): Promise<ChapterContent> => {
   return withRetry(async () => {
-    const prompt = `Summarize Rivstart Chapter ${chapterNumber}: ${title}. Provide vocabulary with English and ${targetLanguage} translations in JSON.`;
+    const prompt = `Summarize Rivstart Chapter ${chapterNumber}: ${title}. Provide vocabulary with English and ${targetLanguage} translations. Return ONLY valid JSON with no markdown formatting.`;
     const text = await callGemini(prompt);
-    return JSON.parse(text);
+    const cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    return JSON.parse(cleanText);
   });
 };
