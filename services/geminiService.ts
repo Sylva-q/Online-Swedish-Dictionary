@@ -1,10 +1,10 @@
 import { GoogleGenAI } from "@google/genai";
 import { WordDetails, AiHelperResult, AiHelperMode, ChapterContent } from "../types";
 
-// Initialize the client once using the Vercel variable
+// Initialize the client once. Use the standard v1 endpoint automatically.
 const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
 
-// The current stable model for dictionary tasks
+// Use the standard model ID - avoiding retired or "beta" names
 const MODEL_ID = "gemini-1.5-flash";
 
 async function withRetry<T>(fn: () => Promise<T>, retries = 2, initialDelay = 500): Promise<T> {
@@ -26,9 +26,10 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 2, initialDelay = 50
 
 export const lookupSwedishWord = async (word: string, targetLanguage: string): Promise<WordDetails[]> => {
   return withRetry(async () => {
+    // Calling .models.generateContent is the modern 2026 standard
     const response = await ai.models.generateContent({
       model: MODEL_ID,
-      contents: `Generate a Swedish-English dictionary entry for "${word}". Translate secondary definitions and examples to ${targetLanguage}. Return as a JSON array following the WordDetails schema.`,
+      contents: `Generate a Swedish-English dictionary entry for "${word}". Translate secondary definitions and examples to ${targetLanguage}. Return as a JSON array.`,
       config: {
         responseMimeType: "application/json",
         temperature: 0.1,
