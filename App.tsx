@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Globe, Search as SearchIcon, MessageSquare, Info, Layers, History as HistoryIcon, AlertTriangle, ChevronRight, Zap } from 'lucide-react';
+import { Analytics } from '@vercel/analytics/react';
 import SearchBar from './components/SearchBar';
 import WordCard from './components/WordCard';
 import HistoryStats from './components/HistoryStats';
@@ -255,6 +256,7 @@ const App: React.FC = () => {
           ))}
         </div>
       </nav>
+      <Analytics />
     </div>
   );
 };
