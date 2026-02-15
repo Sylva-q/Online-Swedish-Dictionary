@@ -1,7 +1,7 @@
 import { WordDetails, AiHelperResult, AiHelperMode, ChapterContent } from "../types";
 
 const API_KEY = import.meta.env.VITE_API_KEY;
-const MODEL_ID = "gemini-pro";
+const MODEL_ID = "gemini-2.5-flash";
 
 async function withRetry<T>(fn: () => Promise<T>, retries = 2, initialDelay = 500): Promise<T> {
   let lastError: any;
