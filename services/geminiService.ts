@@ -1,7 +1,7 @@
 import { WordDetails, AiHelperResult, AiHelperMode, ChapterContent } from "../types";
 
 const API_KEY = import.meta.env.VITE_API_KEY;
-const MODEL_ID = "gemini-1.5-flash";  // Changed from gemini-1.5-flash-latest
+const MODEL_ID = "gemini-1.5-flash";
 
 async function withRetry<T>(fn: () => Promise<T>, retries = 2, initialDelay = 500): Promise<T> {
   let lastError: any;
@@ -66,4 +66,16 @@ export const lookupSwedishWord = async (word: string, targetLanguage: string): P
 };
 
 export const getAiTextHelp = async (inputText: string, mode: AiHelperMode, targetLanguage: string): Promise<AiHelperResult> => {
-  ret
+  return withRetry(async () => {
+    let prompt = mode === 'translate' ? `Translate to English and ${targetLanguage}:` :
+                 mode === 'correct' ? `Correct Swedish grammar and explain in English and ${targetLanguage}:` :
+                 `Write a Swedish paragraph about:`;
+    
+    prompt += ` "${inputText}". Return ONLY a valid JSON object: { "output": "string", "explanation": "string" } with no markdown formatting.`;
+    const text = await callGemini(prompt);
+    const cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    return JSON.parse(cleanText);
+  });
+};
+
+export const getRivstartChapter = async (chapterNumber: number, title: string, targetLang
