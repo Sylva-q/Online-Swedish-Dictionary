@@ -73,7 +73,7 @@ const wordSchema = { type: Type.ARRAY, items: wordItemSchema };
 // Optimized lookup for maximum speed using systemInstruction
 export const lookupSwedishWord = async (word: string, targetLanguage: string): Promise<WordDetails[]> => {
   return withRetry(async () => {
-    const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
+    const ai = new GoogleGenAI(import.meta.env.VITE_API_KEY);
     const response = await ai.models.generateContent({
       model: "gemini-1.5-flash", 
       contents: `Entry for: "${word}". Translate secondary to ${targetLanguage}.`,
@@ -93,7 +93,7 @@ export const lookupSwedishWord = async (word: string, targetLanguage: string): P
 
 export const getAiTextHelp = async (inputText: string, mode: AiHelperMode, targetLanguage: string): Promise<AiHelperResult> => {
   return withRetry(async () => {
-    const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
+    const ai = new GoogleGenAI(import.meta.env.VITE_API_KEY);
     let modeInstruction = "";
     if (mode === 'translate') modeInstruction = `Translate to English and ${targetLanguage}.`;
     else if (mode === 'correct') modeInstruction = `Correct Swedish text and explain grammar in English and ${targetLanguage}.`;
@@ -123,7 +123,7 @@ export const getAiTextHelp = async (inputText: string, mode: AiHelperMode, targe
 
 export const getRivstartChapter = async (chapterNumber: number, title: string, targetLanguage: string): Promise<ChapterContent> => {
   return withRetry(async () => {
-    const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
+    const ai = new GoogleGenAI(import.meta.env.VITE_API_KEY);
     const response = await ai.models.generateContent({
       model: "gemini-1.5-flash",
       contents: `Rivstart Chapter ${chapterNumber}: ${title}. Secondary lang: ${targetLanguage}.`,
