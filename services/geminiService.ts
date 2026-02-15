@@ -71,41 +71,80 @@ async function callGemini(prompt: string, temperature = 0.7): Promise<string> {
 
 export const lookupSwedishWord = async (word: string, targetLanguage: string): Promise<WordDetails[]> => {
   return withRetry(async () => {
-    const prompt = `You are a Swedish-English dictionary. Generate a dictionary entry for the Swedish word "${word}".
+    const targetLangKey = targetLanguage.toLowerCase().replace(/\s+/g, '_');
+    
+    const prompt = `You are a comprehensive Swedish dictionary. Generate a complete dictionary entry for "${word}".
 
-Instructions:
-- Provide definitions in both English and ${targetLanguage}
-- Return ONLY valid JSON, nothing else
-- Use proper JSON escaping for quotes and special characters
-- Format as a JSON array
+Return a JSON array with this EXACT structure. Every field must be filled with accurate information:
 
-Required JSON structure:
 [
   {
-    "word": "string",
-    "partOfSpeech": "string",
+    "word": "${word}",
+    "ipa": "IPA phonetic notation",
+    "partOfSpeech": "verb|noun|adjective|adverb|etc",
+    "gender": "en|ett|n/a",
     "definitions": {
-      "english": "string",
-      "${targetLanguage.toLowerCase()}": "string"
+      "english": "Primary English definition",
+      "secondary": "${targetLanguage} translation"
+    },
+    "grammarNotes": "Detailed grammar note (e.g., 'Strong verb (class 5)' or 'Common gender noun')",
+    "inflections": {
+      "verb": {
+        "imperative": "imperative form",
+        "infinitive": "infinitive form", 
+        "present": "present tense",
+        "past": "past tense (preteritum)",
+        "supine": "supine form"
+      },
+      "noun": {
+        "indefiniteSingular": "singular indefinite",
+        "definiteSingular": "singular definite",
+        "indefinitePlural": "plural indefinite", 
+        "definitePlural": "plural definite"
+      },
+      "adjective": {
+        "indefiniteEn": "en-form",
+        "indefiniteEtt": "ett-form",
+        "indefinitePlural": "plural form",
+        "definite": "definite form",
+        "positive": "positive degree",
+        "comparative": "comparative degree",
+        "superlative": "superlative degree"
+      }
     },
     "examples": [
       {
-        "swedish": "string",
-        "english": "string",
-        "${targetLanguage.toLowerCase()}": "string"
+        "swedish": "Swedish example sentence 1",
+        "english": "English translation 1",
+        "${targetLangKey}": "${targetLanguage} translation 1"
+      },
+      {
+        "swedish": "Swedish example sentence 2", 
+        "english": "English translation 2",
+        "${targetLangKey}": "${targetLanguage} translation 2"
       }
     ]
   }
 ]
 
-Return ONLY the JSON array, no markdown, no explanations.`;
+CRITICAL RULES:
+1. Include ALL inflection forms for the word's part of speech (verb/noun/adjective)
+2. For nouns: MUST include gender ("en" or "ett", NOT "n/a" for actual nouns)
+3. For verbs: include all 5 forms (imperative, infinitive, present, past, supine)
+4. For adjectives: include all declension AND comparison forms
+5. Provide at least 2-3 example sentences
+6. IPA must use proper phonetic notation with slashes
+7. Grammar notes should be informative (verb class, noun declension, etc.)
+8. Return ONLY the JSON array - no markdown, no explanations, no code blocks`;
     
-    const text = await callGemini(prompt, 0.1);
+    const text = await callGemini(prompt, 0.4);
     
     try {
-      return JSON.parse(text);
+      const parsed = JSON.parse(text);
+      console.log("Successfully parsed JSON:", parsed);
+      return parsed;
     } catch (parseError) {
-      console.error("Failed to parse JSON:", text);
+      console.error("Failed to parse JSON. Raw response:", text);
       console.error("Parse error:", parseError);
       throw new Error("Invalid response format from API");
     }
