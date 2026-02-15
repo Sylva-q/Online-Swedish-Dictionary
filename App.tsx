@@ -84,8 +84,10 @@ const App: React.FC = () => {
         });
       }
     } catch (error: any) {
+      console.error("Search error:", error);
+      console.error("Error message:", error.message);
       setStatus(LoadingState.ERROR);
-      setErrorMsg("Failed to connect. Please try again.");
+      setErrorMsg(error.message || "Failed to connect. Please try again.");
     }
   }, [targetLanguage]);
 
