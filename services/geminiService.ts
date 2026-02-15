@@ -78,4 +78,11 @@ export const getAiTextHelp = async (inputText: string, mode: AiHelperMode, targe
   });
 };
 
-export const getRivstartChapter = async (chapterNumber: number, title: string, targetLang
+export const getRivstartChapter = async (chapterNumber: number, title: string, targetLanguage: string): Promise<ChapterContent> => {
+  return withRetry(async () => {
+    const prompt = `Summarize Rivstart Chapter ${chapterNumber}: ${title}. Provide vocabulary with English and ${targetLanguage} translations. Return ONLY valid JSON with no markdown formatting.`;
+    const text = await callGemini(prompt);
+    const cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    return JSON.parse(cleanText);
+  });
+};
