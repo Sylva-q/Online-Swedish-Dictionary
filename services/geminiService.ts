@@ -1,7 +1,6 @@
 import { WordDetails, AiHelperResult, AiHelperMode, ChapterContent } from "../types";
 
 const API_KEY = import.meta.env.VITE_API_KEY;
-const API_BASE = "https://generativelanguage.googleapis.com/v1/models";
 const MODEL_ID = "gemini-1.5-flash-latest";
 
 async function withRetry<T>(fn: () => Promise<T>, retries = 2, initialDelay = 500): Promise<T> {
@@ -22,30 +21,44 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 2, initialDelay = 50
 }
 
 async function callGemini(prompt: string, temperature = 0.7): Promise<string> {
-  const response = await fetch(`${API_BASE}/${MODEL_ID}:generateContent?key=${API_KEY}`, {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ID}:generateContent?key=${API_KEY}`;
+  
+  const requestBody = {
+    contents: [
+      {
+        parts: [
+          {
+            text: prompt
+          }
+        ]
+      }
+    ],
+    generationConfig: {
+      temperature: temperature,
+      maxOutputTokens: 2048,
+    }
+  };
+
+  console.log("Making request to:", url);
+  console.log("Request body:", JSON.stringify(requestBody, null, 2));
+
+  const response = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      contents: [{
-        parts: [{
-          text: prompt
-        }]
-      }],
-      generationConfig: {
-        temperature: temperature,
-      }
-    })
+    body: JSON.stringify(requestBody)
   });
 
+  const responseText = await response.text();
+  console.log("Response status:", response.status);
+  console.log("Response body:", responseText);
+
   if (!response.ok) {
-    const error = await response.text();
-    console.error("API Error:", error);
-    throw new Error(`API Error ${response.status}: ${error}`);
+    throw new Error(`API Error ${response.status}: ${responseText}`);
   }
 
-  const data = await response.json();
+  const data = JSON.parse(responseText);
   const text = data.candidates[0].content.parts[0].text;
   return text;
 }
@@ -54,7 +67,6 @@ export const lookupSwedishWord = async (word: string, targetLanguage: string): P
   return withRetry(async () => {
     const prompt = `Generate a Swedish-English dictionary entry for "${word}". Translate secondary definitions and examples to ${targetLanguage}. Return ONLY a valid JSON array with no markdown formatting or code blocks.`;
     const text = await callGemini(prompt, 0.1);
-    // Remove markdown code blocks if present
     const cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     return JSON.parse(cleanText);
   });
