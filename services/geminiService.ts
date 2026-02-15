@@ -53,15 +53,62 @@ async function callGemini(prompt: string, temperature = 0.7): Promise<string> {
 
   const data = await response.json();
   const text = data.candidates[0].content.parts[0].text;
-  return text;
+  
+  // Clean up the response text
+  let cleanedText = text.trim();
+  
+  // Remove markdown code blocks if present
+  cleanedText = cleanedText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+  
+  // Try to extract JSON if it's embedded in other text
+  const jsonMatch = cleanedText.match(/\[[\s\S]*\]|\{[\s\S]*\}/);
+  if (jsonMatch) {
+    cleanedText = jsonMatch[0];
+  }
+  
+  return cleanedText;
 }
 
 export const lookupSwedishWord = async (word: string, targetLanguage: string): Promise<WordDetails[]> => {
   return withRetry(async () => {
-    const prompt = `Generate a Swedish-English dictionary entry for "${word}". Translate secondary definitions and examples to ${targetLanguage}. Return ONLY a valid JSON array with no markdown formatting or code blocks.`;
+    const prompt = `You are a Swedish-English dictionary. Generate a dictionary entry for the Swedish word "${word}".
+
+Instructions:
+- Provide definitions in both English and ${targetLanguage}
+- Return ONLY valid JSON, nothing else
+- Use proper JSON escaping for quotes and special characters
+- Format as a JSON array
+
+Required JSON structure:
+[
+  {
+    "word": "string",
+    "partOfSpeech": "string",
+    "definitions": {
+      "english": "string",
+      "${targetLanguage.toLowerCase()}": "string"
+    },
+    "examples": [
+      {
+        "swedish": "string",
+        "english": "string",
+        "${targetLanguage.toLowerCase()}": "string"
+      }
+    ]
+  }
+]
+
+Return ONLY the JSON array, no markdown, no explanations.`;
+    
     const text = await callGemini(prompt, 0.1);
-    const cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    return JSON.parse(cleanText);
+    
+    try {
+      return JSON.parse(text);
+    } catch (parseError) {
+      console.error("Failed to parse JSON:", text);
+      console.error("Parse error:", parseError);
+      throw new Error("Invalid response format from API");
+    }
   });
 };
 
